@@ -1,26 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/trainee_session.dart';
 
 class HomeRepository {
   final _client = Supabase.instance.client;
 
-  String? _cachedTraineeId;
-
-  Future<Map<String, dynamic>> getHomeStats() async {
+  Future<Map<String, dynamic>> getHomeStats({String? explicitTraineeId}) async {
     final user = _client.auth.currentUser;
     if (user == null) return _emptyStats();
 
-    if (_cachedTraineeId == null) {
-      final trainee = await _client
-          .from('trainee_safe_profile')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      if (trainee == null) return _emptyStats(isUnlinked: true);
-      _cachedTraineeId = trainee['id'] as String?;
-    }
-
-    final traineeId = _cachedTraineeId;
+    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
     if (traineeId == null) return _emptyStats(isUnlinked: true);
 
     // تشغيل الاستعلامات الثلاثة بالتوازي لتوفير زمن الانتظار

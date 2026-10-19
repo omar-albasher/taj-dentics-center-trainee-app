@@ -1,26 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/trainee_session.dart';
 
 class CoursesRepository {
   final _client = Supabase.instance.client;
 
-  String? _cachedTraineeId;
-
-  Future<List<Map<String, dynamic>>> getMyEnrollments() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return [];
-
-    if (_cachedTraineeId == null) {
-      final trainee = await _client
-          .from('trainee_safe_profile')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      if (trainee == null) return [];
-      _cachedTraineeId = trainee['id'] as String?;
-    }
-
-    final traineeId = _cachedTraineeId;
+  Future<List<Map<String, dynamic>>> getMyEnrollments({String? explicitTraineeId}) async {
+    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
     if (traineeId == null) return [];
 
     final response = await _client
