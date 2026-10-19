@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/app_router.dart';
@@ -25,7 +26,17 @@ class App extends StatelessWidget {
       title: 'Taj Dentics',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
+      locale: const Locale('ar'),
+      supportedLocales: const [
+        Locale('ar'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: AppRouter.router,
     );
   }
 }
+

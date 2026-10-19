@@ -11,17 +11,17 @@ class HomeRepository {
 
     if (_cachedTraineeId == null) {
       final trainee = await _client
-          .from('trainees')
+          .from('trainee_safe_profile')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-      if (trainee == null) return _emptyStats();
+      if (trainee == null) return _emptyStats(isUnlinked: true);
       _cachedTraineeId = trainee['id'] as String?;
     }
 
     final traineeId = _cachedTraineeId;
-    if (traineeId == null) return _emptyStats();
+    if (traineeId == null) return _emptyStats(isUnlinked: true);
 
     // تشغيل الاستعلامات الثلاثة بالتوازي لتوفير زمن الانتظار
     final results = await Future.wait([
@@ -78,9 +78,10 @@ class HomeRepository {
     };
   }
 
-  Map<String, dynamic> _emptyStats() => {
+  Map<String, dynamic> _emptyStats({bool isUnlinked = false}) => {
         'courses_count': 0,
         'avg_attendance': '0',
         'payment_status': 'لا يوجد',
+        'is_unlinked': isUnlinked,
       };
 }

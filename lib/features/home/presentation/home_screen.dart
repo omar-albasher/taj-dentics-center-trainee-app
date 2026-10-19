@@ -159,38 +159,81 @@ class _HomeScreenState extends State<HomeScreen> {
                     final stats = snapshot.data;
                     final loading =
                         snapshot.connectionState == ConnectionState.waiting;
+                    final hasError = snapshot.hasError;
+                    final isUnlinked = stats?['is_unlinked'] == true;
 
-                    return Row(
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: 'الحضور',
-                            value: loading
-                                ? '...'
-                                : '${stats?['avg_attendance']}%',
-                            icon: Icons.check_circle_outline,
-                            color: AppColors.success,
+                        if (isUnlinked) ...[
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.warning),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: AppColors.warning, size: 24),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'حسابك قيد التفعيل. يُرجى مراجعة إدارة المركز لربط ملفك التدريبي.',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontFamily: 'Cairo',
+                                      fontSize: 13,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        SizedBox(width: Responsive.spacing(context, 12)),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'المدفوعات',
-                            value:
-                                loading ? '...' : '${stats?['payment_status']}',
-                            icon: Icons.payment_outlined,
-                            color: AppColors.warning,
-                          ),
-                        ),
-                        SizedBox(width: Responsive.spacing(context, 12)),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'الكورسات',
-                            value:
-                                loading ? '...' : '${stats?['courses_count']}',
-                            icon: Icons.school_outlined,
-                            color: AppColors.gold,
-                          ),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _StatCard(
+                                title: 'الحضور',
+                                value: loading
+                                    ? '...'
+                                    : hasError
+                                        ? '-'
+                                        : '${stats?['avg_attendance'] ?? 0}%',
+                                icon: Icons.check_circle_outline,
+                                color: AppColors.success,
+                              ),
+                            ),
+                            SizedBox(width: Responsive.spacing(context, 12)),
+                            Expanded(
+                              child: _StatCard(
+                                title: 'المدفوعات',
+                                value: loading
+                                    ? '...'
+                                    : hasError
+                                        ? '-'
+                                        : '${stats?['payment_status'] ?? '-'}',
+                                icon: Icons.payment_outlined,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                            SizedBox(width: Responsive.spacing(context, 12)),
+                            Expanded(
+                              child: _StatCard(
+                                title: 'الكورسات',
+                                value: loading
+                                    ? '...'
+                                    : hasError
+                                        ? '-'
+                                        : '${stats?['courses_count'] ?? 0}',
+                                icon: Icons.school_outlined,
+                                color: AppColors.gold,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     );

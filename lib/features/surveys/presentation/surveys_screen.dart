@@ -51,6 +51,36 @@ class _SurveysScreenState extends State<SurveysScreen> {
             );
           }
 
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'تعذر تحميل الاستبيانات',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Cairo',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           final surveys = snapshot.data ?? [];
 
           if (surveys.isEmpty) {

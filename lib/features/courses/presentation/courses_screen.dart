@@ -189,7 +189,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: LinearProgressIndicator(
-                              value: percentage / 100,
+                              value: (percentage / 100).clamp(0.0, 1.0),
                               backgroundColor: AppColors.divider,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 percentage >= 75

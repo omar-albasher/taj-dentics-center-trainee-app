@@ -23,10 +23,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _loading = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      final res = await Supabase.instance.client.auth.signInWithPassword(
         email:    _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      final user = res.user;
+      final role = (user?.userMetadata ?? const {})['role'] ??
+          (user?.appMetadata ?? const {})['role'];
+
+      if (role == 'admin' || role == 'reception') {
+        await Supabase.instance.client.auth.signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('هذا التطبيق مخصص للمتدربين فقط. يُرجى الدخول من لوحة التحكم.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (value == null || value.trim().isEmpty) {
                             return 'يرجى إدخال البريد الإلكتروني';
                           }
-                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[a-zA-Z]{2,}$');
                           if (!emailRegex.hasMatch(value.trim())) {
                             return 'صيغة البريد الإلكتروني غير صحيحة';
                           }

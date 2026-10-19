@@ -11,7 +11,7 @@ class CoursesRepository {
 
     if (_cachedTraineeId == null) {
       final trainee = await _client
-          .from('trainees')
+          .from('trainee_safe_profile')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();

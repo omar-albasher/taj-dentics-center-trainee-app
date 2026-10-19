@@ -12,11 +12,39 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+class _QrScannerScreenState extends State<QrScannerScreen>
+    with WidgetsBindingObserver {
+  late final MobileScannerController _controller;
   final _attendanceRepo = AttendanceRepository();
   bool _processing = false;
   bool _torchOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _controller = MobileScannerController(
+      formats: const [BarcodeFormat.qrCode],
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.value.isInitialized) return;
+
+    switch (state) {
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        return;
+      case AppLifecycleState.resumed:
+        if (!_processing) {
+          _controller.start();
+        }
+      case AppLifecycleState.inactive:
+        _controller.stop();
+    }
+  }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_processing) return;
@@ -120,6 +148,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }

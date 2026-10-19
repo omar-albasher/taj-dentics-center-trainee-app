@@ -28,7 +28,15 @@ class AppRouter {
       final isLogin = state.matchedLocation == login;
 
       if (session == null && !isLogin) return login;
-      if (session != null && isLogin) return home;
+      if (session != null) {
+        final role = (session.user.userMetadata ?? const {})['role'] ??
+            session.user.appMetadata['role'];
+        if (role == 'admin' || role == 'reception') {
+          Supabase.instance.client.auth.signOut();
+          return login;
+        }
+        if (isLogin) return home;
+      }
       return null;
     },
     refreshListenable: _AuthNotifier(),

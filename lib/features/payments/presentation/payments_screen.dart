@@ -211,7 +211,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
-                        value: totalDue == 0 ? 0 : totalPaid / totalDue,
+                        value: totalDue == 0 ? 0.0 : (totalPaid / totalDue).clamp(0.0, 1.0),
                         backgroundColor: AppColors.divider,
                         valueColor:
                             const AlwaysStoppedAnimation(AppColors.gold),
