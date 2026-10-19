@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../data/surveys_repository.dart';
 import '../domain/survey_model.dart';
 import 'package:go_router/go_router.dart';
@@ -62,7 +63,7 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('حدث خطأ: $e'),
+          content: Text(AppErrorHandler.friendlyMessage(e)),
           backgroundColor: AppColors.error,
         ),
       );

@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../data/attendance_repository.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -67,7 +68,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       await _showResultDialog(success: success, message: message);
     } catch (e) {
       if (!mounted) return;
-      await _showResultDialog(success: false, message: e.toString());
+      await _showResultDialog(success: false, message: AppErrorHandler.friendlyMessage(e));
     }
   }
 
