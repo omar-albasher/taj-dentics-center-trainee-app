@@ -4,7 +4,7 @@ class SurveyDispatch {
   final String surveyTitle;
   final List<dynamic> questions;
   final String status;
-  final DateTime dispatchedAt;
+  final DateTime? dispatchedAt;
   final bool isAnswered;
 
   const SurveyDispatch({
@@ -24,7 +24,7 @@ class SurveyDispatch {
       surveyTitle: map['survey_templates']?['title'] ?? '',
       questions: map['survey_templates']?['questions'] ?? [],
       status: map['status'] ?? 'pending',
-      dispatchedAt: DateTime.parse(map['dispatched_at']),
+      dispatchedAt: DateTime.tryParse(map['dispatched_at']?.toString() ?? ''),
       isAnswered: map['status'] == 'answered',
     );
   }

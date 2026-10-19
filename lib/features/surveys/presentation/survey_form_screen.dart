@@ -21,7 +21,15 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
 
   Future<void> _submit() async {
     for (final q in widget.survey.questions) {
-      if (q['required'] == true && _answers[q['id']] == null) {
+      if (q is! Map) continue;
+      final qId = q['id']?.toString();
+      final type = q['type']?.toString() ?? '';
+      // سؤال بنوع غير مدعوم لا يمكن الإجابة عليه — لا نحظر الإرسال بسببه
+      if (type != 'rating' && type != 'text') continue;
+      final answer = qId == null ? null : _answers[qId];
+      final answered =
+          answer != null && (answer is! String || answer.trim().isNotEmpty);
+      if (q['required'] == true && !answered) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('يرجى الإجابة على جميع الأسئلة الإلزامية'),
@@ -89,6 +97,7 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
           ...widget.survey.questions.asMap().entries.map((entry) {
             final index = entry.key;
             final q = entry.value;
+            if (q is! Map) return const SizedBox.shrink();
             return Padding(
               padding: EdgeInsets.only(bottom: Responsive.spacing(context, 24)),
               child: _buildQuestion(context, q, index),
@@ -124,9 +133,9 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
   }
 
   Widget _buildQuestion(BuildContext context, Map q, int index) {
-    final qId = q['id'] as String;
-    final text = q['text'] as String;
-    final type = q['type'] as String;
+    final qId = q['id']?.toString() ?? 'q_$index';
+    final text = q['text']?.toString() ?? '';
+    final type = q['type']?.toString() ?? '';
     final required = q['required'] == true;
 
     return Container(
@@ -174,6 +183,15 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
           SizedBox(height: Responsive.spacing(context, 16)),
           if (type == 'rating') _buildRating(context, qId),
           if (type == 'text') _buildTextField(context, qId),
+          if (type != 'rating' && type != 'text')
+            Text(
+              'نوع سؤال غير مدعوم في هذا الإصدار',
+              style: TextStyle(
+                fontSize: Responsive.fontSize(context, 13),
+                color: AppColors.textSecondary,
+                fontFamily: 'Cairo',
+              ),
+            ),
         ],
       ),
     );
