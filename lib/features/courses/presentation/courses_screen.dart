@@ -139,6 +139,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
               final total = (course['total_sessions'] as num?)?.toInt() ?? 1;
               final percentage =
                   (course['attendance_percentage'] as num?)?.toDouble() ?? 0;
+              final extraAttended =
+                  (course['extra_sessions_attended'] as num?)?.toInt() ?? 0;
 
               return Container(
                 padding: EdgeInsets.all(Responsive.spacing(context, 20)),
@@ -178,6 +180,15 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           value: '${course['sessions_remaining']} جلسة',
                           color: AppColors.gold,
                         ),
+                        if (extraAttended > 0) ...[
+                          SizedBox(width: Responsive.spacing(context, 8)),
+                          _StatChip(
+                            icon: Icons.add_task,
+                            label: 'إضافية',
+                            value: '$extraAttended جلسة',
+                            color: Colors.amber,
+                          ),
+                        ],
                       ],
                     ),
                     SizedBox(height: Responsive.spacing(context, 16)),
@@ -216,7 +227,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     ),
                     SizedBox(height: Responsive.spacing(context, 4)),
                     Text(
-                      'نسبة الحضور من $total جلسة',
+                      extraAttended > 0
+                          ? 'نسبة الحضور من $total جلسة أساسية (تشمل $extraAttended إضافية تعويضية)'
+                          : 'نسبة الحضور من $total جلسة',
                       style: TextStyle(
                         fontSize: Responsive.fontSize(context, 12),
                         color: AppColors.textSecondary,
