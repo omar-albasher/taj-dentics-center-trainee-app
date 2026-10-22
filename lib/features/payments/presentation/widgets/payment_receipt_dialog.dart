@@ -194,9 +194,12 @@ class _ReceiptCardContent extends StatelessWidget {
       formattedDate =
           '${receipt.paidAt.year}/${receipt.paidAt.month.toString().padLeft(2, '0')}/${receipt.paidAt.day.toString().padLeft(2, '0')}';
     }
-    final shortId = receipt.paymentId.length >= 8
-        ? receipt.paymentId.substring(0, 8).toUpperCase()
-        : receipt.paymentId.toUpperCase();
+    final receiptNumberDisplay =
+        (receipt.receiptNumber != null && receipt.receiptNumber!.isNotEmpty)
+            ? receipt.receiptNumber!
+            : (receipt.paymentId.length >= 8
+                ? receipt.paymentId.substring(0, 8).toUpperCase()
+                : receipt.paymentId.toUpperCase());
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -260,7 +263,7 @@ class _ReceiptCardContent extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  'رقم الإيصال: #$shortId',
+                  'رقم الإيصال: #$receiptNumberDisplay',
                   style: const TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 12,

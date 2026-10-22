@@ -47,6 +47,7 @@ class PaymentReceipt {
   final DateTime paidAt;
   final String paymentMethod;
   final String? externalReference;
+  final String? receiptNumber;
   final String? notes;
   final String courseName;
   final String cohortName;
@@ -62,6 +63,7 @@ class PaymentReceipt {
     required this.paidAt,
     required this.paymentMethod,
     this.externalReference,
+    this.receiptNumber,
     this.notes,
     required this.courseName,
     required this.cohortName,
@@ -81,6 +83,7 @@ class PaymentReceipt {
           : DateTime.now(),
       paymentMethod: map['payment_method'] ?? 'cash',
       externalReference: map['external_reference'],
+      receiptNumber: map['receipt_number'],
       notes: map['notes'],
       courseName: map['course_name'] ?? '',
       cohortName: map['cohort_name'] ?? '',
