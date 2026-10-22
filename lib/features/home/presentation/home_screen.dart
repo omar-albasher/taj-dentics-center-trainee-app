@@ -6,6 +6,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/home_repository.dart';
+import 'widgets/next_session_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,18 +18,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _homeRepo = HomeRepository();
   late Future<Map<String, dynamic>> _statsFuture;
+  late Future<Map<String, dynamic>?> _nextSessionFuture;
 
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
     _statsFuture = _homeRepo.getHomeStats();
+    _nextSessionFuture = _homeRepo.getNextSession();
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _statsFuture = _homeRepo.getHomeStats();
+      _loadData();
     });
-    await _statsFuture;
+    await Future.wait([_statsFuture, _nextSessionFuture]);
   }
 
   Future<void> _confirmLogout() async {
@@ -240,7 +247,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
 
-                SizedBox(height: Responsive.spacing(context, 24)),
+                SizedBox(height: Responsive.spacing(context, 16)),
+
+                // Next Session Card (Phase A4)
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: _nextSessionFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const NextSessionCard(session: null, isLoading: true);
+                    }
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return NextSessionCard(session: snapshot.data);
+                  },
+                ),
+
+                SizedBox(height: Responsive.spacing(context, 8)),
 
                 // Section title
                 Text(

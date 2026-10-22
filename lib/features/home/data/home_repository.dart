@@ -66,6 +66,29 @@ class HomeRepository {
     };
   }
 
+  /// جلب الجلسة القادمة للمتدرب بناءً على تسجيلاته النشطة
+  Future<Map<String, dynamic>?> getNextSession({String? explicitTraineeId}) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+
+    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
+    if (traineeId == null) return null;
+
+    try {
+      final res = await _client
+          .from('trainee_next_sessions')
+          .select()
+          .eq('trainee_id', traineeId)
+          .order('scheduled_at', ascending: true)
+          .limit(1)
+          .maybeSingle();
+
+      return res != null ? Map<String, dynamic>.from(res) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Map<String, dynamic> _emptyStats({bool isUnlinked = false}) => {
         'courses_count': 0,
         'avg_attendance': '0',
