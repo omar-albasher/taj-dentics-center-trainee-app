@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/intro/presentation/intro_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/attendance/presentation/qr_scanner_screen.dart';
 import '../../features/courses/presentation/courses_screen.dart';
@@ -13,6 +14,9 @@ import '../../features/surveys/domain/survey_model.dart';
 class AppRouter {
   AppRouter._();
 
+  static bool hasSeenIntro = false;
+
+  static const intro = '/intro';
   static const login = '/login';
   static const home = '/home';
   static const qrScanner = '/qr-scanner';
@@ -25,7 +29,18 @@ class AppRouter {
     initialLocation: home,
     redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
+      final isIntro = state.matchedLocation == intro;
       final isLogin = state.matchedLocation == login;
+
+      // إذا لم يشاهد المقدمة بعد ولم يكن مسجل الدخول، وجّهه للمقدمة
+      if (!hasSeenIntro && session == null) {
+        return isIntro ? null : intro;
+      }
+
+      // إذا كان بمسار المقدمة وقد شاهدها مسبقاً
+      if (isIntro) {
+        return session != null ? home : login;
+      }
 
       if (session == null && !isLogin) return login;
       if (session != null) {
@@ -41,6 +56,10 @@ class AppRouter {
     },
     refreshListenable: _AuthNotifier(),
     routes: [
+      GoRoute(
+        path: intro,
+        builder: (_, __) => const IntroScreen(),
+      ),
       GoRoute(
         path: login,
         builder: (_, __) => const LoginScreen(),
