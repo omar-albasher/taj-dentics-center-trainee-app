@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trainee_app/features/home/presentation/widgets/next_session_card.dart';
 import 'package:trainee_app/features/intro/presentation/intro_screen.dart';
+import 'package:trainee_app/features/payments/domain/payment_model.dart';
+import 'package:trainee_app/features/payments/presentation/widgets/payment_receipt_dialog.dart';
 
 void main() {
   setUp(() {
@@ -164,6 +166,55 @@ void main() {
       // Skip is hidden on the last page
       expect(find.text('تخطي'), findsNothing);
       expect(find.text('ابدأ الآن'), findsOneWidget);
+    });
+  });
+
+  group('PaymentReceipt tests (Phase A3)', () {
+    final mockReceipt = PaymentReceipt(
+      paymentId: 'pay-uuid-12345678',
+      enrollmentId: 'enr-1',
+      amount: 150000,
+      currency: 'SYP',
+      paidAt: DateTime(2026, 10, 22, 14, 30),
+      paymentMethod: 'sham_cash',
+      externalReference: 'SC-998877',
+      notes: 'دفعة أولى',
+      courseName: 'EXOCAD تصميم رقمي',
+      cohortName: 'المجموعة A',
+      traineeId: 'trainee-1',
+      traineeCode: 'T10015',
+      traineeName: 'عمر البشير',
+    );
+
+    test('PaymentReceipt model formats Arabic method and currency correctly', () {
+      expect(mockReceipt.paymentMethodAr, 'شام كاش (Sham Cash)');
+      expect(mockReceipt.currencySymbol, 'ل.س');
+    });
+
+    testWidgets('PaymentReceiptDialog renders all receipt details and actions',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PaymentReceiptDialog(receipt: mockReceipt),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('إيصال سداد رسمي'), findsOneWidget);
+      expect(find.text('مركز تاج دنتكس للتدريب الطبي التخصصي'), findsOneWidget);
+      expect(find.text('عمر البشير'), findsOneWidget);
+      expect(find.text('T10015'), findsOneWidget);
+      expect(find.text('EXOCAD تصميم رقمي'), findsOneWidget);
+      expect(find.text('150000 ل.س'), findsOneWidget);
+      expect(find.text('شام كاش (Sham Cash)'), findsOneWidget);
+      expect(find.text('SC-998877'), findsOneWidget);
+      expect(find.text('حفظ الإيصال كصورة (PNG)'), findsOneWidget);
+      expect(find.text('إغلاق'), findsOneWidget);
     });
   });
 }

@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/payments_repository.dart';
 import '../domain/payment_model.dart';
+import 'widgets/payment_receipt_dialog.dart';
+
+class _PaymentsPageData {
+  final List<EnrollmentFinancial> enrollments;
+  final List<PaymentReceipt> receipts;
+
+  const _PaymentsPageData({
+    required this.enrollments,
+    required this.receipts,
+  });
+}
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -14,17 +26,29 @@ class PaymentsScreen extends StatefulWidget {
 
 class _PaymentsScreenState extends State<PaymentsScreen> {
   final _repo = PaymentsRepository();
-  late Future<List<EnrollmentFinancial>> _future;
+  late Future<_PaymentsPageData> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _repo.getMyPayments();
+    _future = _loadData();
+  }
+
+  Future<_PaymentsPageData> _loadData() async {
+    final results = await Future.wait([
+      _repo.getMyPayments(),
+      _repo.getMyReceipts(),
+    ]);
+
+    return _PaymentsPageData(
+      enrollments: results[0] as List<EnrollmentFinancial>,
+      receipts: results[1] as List<PaymentReceipt>,
+    );
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _future = _repo.getMyPayments();
+      _future = _loadData();
     });
     await _future;
   }
@@ -52,11 +76,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'المدفوعات',
+          'المدفوعات والإيصالات',
           style: TextStyle(
             fontFamily: 'Cairo',
             fontSize: Responsive.fontSize(context, 18),
             color: AppColors.gold,
+            fontWeight: FontWeight.w700,
           ),
         ),
         leading: IconButton(
@@ -64,7 +89,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: FutureBuilder<List<EnrollmentFinancial>>(
+      body: FutureBuilder<_PaymentsPageData>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -103,9 +128,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             );
           }
 
-          final payments = snapshot.data ?? [];
+          final data = snapshot.data;
+          final enrollments = data?.enrollments ?? [];
+          final receipts = data?.receipts ?? [];
 
-          if (payments.isEmpty) {
+          if (enrollments.isEmpty) {
             return RefreshIndicator(
               color: AppColors.gold,
               onRefresh: _refresh,
@@ -125,7 +152,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                           ),
                           SizedBox(height: Responsive.spacing(context, 16)),
                           Text(
-                            'لا توجد مدفوعات',
+                            'لا توجد مدفوعات مسجلة',
                             style: TextStyle(
                               fontSize: Responsive.fontSize(context, 16),
                               color: AppColors.textSecondary,
@@ -142,9 +169,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           }
 
           // Summary card
-          final totalDue = payments.fold(0.0, (s, e) => s + e.totalDue);
-          final totalPaid = payments.fold(0.0, (s, e) => s + e.totalPaid);
-          final totalBal = payments.fold(0.0, (s, e) => s + e.balance);
+          final totalDue = enrollments.fold(0.0, (s, e) => s + e.totalDue);
+          final totalPaid = enrollments.fold(0.0, (s, e) => s + e.totalPaid);
+          final totalBal = enrollments.fold(0.0, (s, e) => s + e.balance);
+          final defaultCurrency = enrollments.first.currencySymbol;
 
           return RefreshIndicator(
             color: AppColors.gold,
@@ -155,92 +183,99 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 top: Responsive.spacing(context, 20),
                 bottom: Responsive.spacing(context, 20),
               ),
-            children: [
-              // Summary Card
-              Container(
-                padding: EdgeInsets.all(Responsive.spacing(context, 20)),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A4A38), Color(0xFF2A2A2A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              children: [
+                // Summary Card
+                Container(
+                  padding: EdgeInsets.all(Responsive.spacing(context, 20)),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1A4A38), Color(0xFF2A2A2A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ملخص المدفوعات',
-                      style: TextStyle(
-                        fontSize: Responsive.fontSize(context, 16),
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.gold,
-                        fontFamily: 'Cairo',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ملخص المدفوعات',
+                        style: TextStyle(
+                          fontSize: Responsive.fontSize(context, 16),
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.gold,
+                          fontFamily: 'Cairo',
+                        ),
                       ),
-                    ),
-                    SizedBox(height: Responsive.spacing(context, 16)),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SummaryItem(
-                            label: 'الإجمالي',
-                            value: '${totalDue.toStringAsFixed(0)} ر.س',
-                            color: AppColors.textPrimary,
+                      SizedBox(height: Responsive.spacing(context, 16)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryItem(
+                              label: 'الإجمالي',
+                              value: '${totalDue.toStringAsFixed(0)} $defaultCurrency',
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: _SummaryItem(
-                            label: 'المدفوع',
-                            value: '${totalPaid.toStringAsFixed(0)} ر.س',
-                            color: AppColors.success,
+                          Expanded(
+                            child: _SummaryItem(
+                              label: 'المدفوع',
+                              value: '${totalPaid.toStringAsFixed(0)} $defaultCurrency',
+                              color: AppColors.success,
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: _SummaryItem(
-                            label: 'المتبقي',
-                            value: '${totalBal.toStringAsFixed(0)} ر.س',
-                            color: totalBal > 0
-                                ? AppColors.error
-                                : AppColors.success,
+                          Expanded(
+                            child: _SummaryItem(
+                              label: 'المتبقي',
+                              value: '${totalBal.toStringAsFixed(0)} $defaultCurrency',
+                              color: totalBal > 0
+                                  ? AppColors.error
+                                  : AppColors.success,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: Responsive.spacing(context, 12)),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: totalDue == 0 ? 0.0 : (totalPaid / totalDue).clamp(0.0, 1.0),
-                        backgroundColor: AppColors.divider,
-                        valueColor:
-                            const AlwaysStoppedAnimation(AppColors.gold),
-                        minHeight: 8,
+                        ],
                       ),
-                    ),
-                  ],
+                      SizedBox(height: Responsive.spacing(context, 12)),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: totalDue == 0
+                              ? 0.0
+                              : (totalPaid / totalDue).clamp(0.0, 1.0),
+                          backgroundColor: AppColors.divider,
+                          valueColor:
+                              const AlwaysStoppedAnimation(AppColors.gold),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              SizedBox(height: Responsive.spacing(context, 24)),
+                SizedBox(height: Responsive.spacing(context, 24)),
 
-              Text(
-                'تفاصيل الكورسات',
-                style: TextStyle(
-                  fontSize: Responsive.fontSize(context, 16),
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.gold,
-                  fontFamily: 'Cairo',
+                Text(
+                  'تفاصيل الكورسات وسجل الإيصالات',
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, 16),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gold,
+                    fontFamily: 'Cairo',
+                  ),
                 ),
-              ),
-              SizedBox(height: Responsive.spacing(context, 12)),
+                SizedBox(height: Responsive.spacing(context, 12)),
 
-              // Course payment cards
-              ...payments.map((e) => Padding(
+                // Course payment cards
+                ...enrollments.map((e) {
+                  final courseReceipts = receipts
+                      .where((r) => r.enrollmentId == e.enrollmentId)
+                      .toList();
+
+                  return Padding(
                     padding: EdgeInsets.only(
-                        bottom: Responsive.spacing(context, 12)),
+                        bottom: Responsive.spacing(context, 14)),
                     child: Container(
-                      padding: EdgeInsets.all(Responsive.spacing(context, 20)),
+                      padding: EdgeInsets.all(Responsive.spacing(context, 18)),
                       decoration: BoxDecoration(
                         color: AppColors.cardBg,
                         borderRadius: BorderRadius.circular(16),
@@ -310,6 +345,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                 child: _AmountItem(
                                   label: 'الرسوم',
                                   amount: e.totalDue,
+                                  currency: e.currencySymbol,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
@@ -317,6 +353,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                 child: _AmountItem(
                                   label: 'المدفوع',
                                   amount: e.totalPaid,
+                                  currency: e.currencySymbol,
                                   color: AppColors.success,
                                 ),
                               ),
@@ -324,6 +361,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                 child: _AmountItem(
                                   label: 'المتبقي',
                                   amount: e.balance,
+                                  currency: e.currencySymbol,
                                   color: e.balance > 0
                                       ? AppColors.error
                                       : AppColors.success,
@@ -354,17 +392,152 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                               fontFamily: 'Cairo',
                             ),
                           ),
+
+                          // Receipts Section for this enrollment
+                          if (courseReceipts.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            const Divider(color: AppColors.divider, height: 1),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.receipt_long_rounded,
+                                  color: AppColors.gold,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'الإيصالات المسددة (${courseReceipts.length})',
+                                  style: const TextStyle(
+                                    fontFamily: 'Cairo',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.gold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...courseReceipts.map((receipt) => _ReceiptTile(
+                                  receipt: receipt,
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => PaymentReceiptDialog(
+                                        receipt: receipt,
+                                      ),
+                                    );
+                                  },
+                                )),
+                          ],
                         ],
                       ),
                     ),
-                  )),
-            ],
-          ),
-        );
-      },
-    ),
-  );
+                  );
+                }),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
+
+class _ReceiptTile extends StatelessWidget {
+  final PaymentReceipt receipt;
+  final VoidCallback onTap;
+
+  const _ReceiptTile({
+    required this.receipt,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String dateStr;
+    try {
+      dateStr = DateFormat('yyyy/MM/dd', 'ar').format(receipt.paidAt);
+    } catch (_) {
+      dateStr =
+          '${receipt.paidAt.year}/${receipt.paidAt.month.toString().padLeft(2, '0')}/${receipt.paidAt.day.toString().padLeft(2, '0')}';
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.divider.withValues(alpha: 0.6)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_outlined,
+                color: AppColors.gold,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${receipt.amount.toStringAsFixed(0)} ${receipt.currencySymbol}',
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '$dateStr • ${receipt.paymentMethodAr}',
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'عرض الإيصال',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.gold,
+                  size: 12,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SummaryItem extends StatelessWidget {
@@ -407,11 +580,13 @@ class _SummaryItem extends StatelessWidget {
 class _AmountItem extends StatelessWidget {
   final String label;
   final double amount;
+  final String currency;
   final Color color;
 
   const _AmountItem({
     required this.label,
     required this.amount,
+    required this.currency,
     required this.color,
   });
 
@@ -429,7 +604,7 @@ class _AmountItem extends StatelessWidget {
           ),
         ),
         Text(
-          '${amount.toStringAsFixed(0)} ر.س',
+          '${amount.toStringAsFixed(0)} $currency',
           style: TextStyle(
             fontSize: Responsive.fontSize(context, 14),
             fontWeight: FontWeight.w700,

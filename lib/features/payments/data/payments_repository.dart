@@ -18,4 +18,27 @@ class PaymentsRepository {
         .map((e) => EnrollmentFinancial.fromMap(e))
         .toList();
   }
+
+  /// جلب سجل إيصالات الدفعات التفصيلية للمتدرب
+  Future<List<PaymentReceipt>> getMyReceipts({
+    String? enrollmentId,
+    String? explicitTraineeId,
+  }) async {
+    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
+    if (traineeId == null) return [];
+
+    var query = _client
+        .from('trainee_payment_receipts')
+        .select()
+        .eq('trainee_id', traineeId);
+
+    if (enrollmentId != null && enrollmentId.isNotEmpty) {
+      query = query.eq('enrollment_id', enrollmentId);
+    }
+
+    final response = await query.order('paid_at', ascending: false);
+    return (response as List)
+        .map((e) => PaymentReceipt.fromMap(e))
+        .toList();
+  }
 }
