@@ -6,6 +6,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/home_repository.dart';
+import '../../attendance/data/attendance_queue_service.dart';
 import 'widgets/next_session_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+    AttendanceQueueService.instance.processQueue();
   }
 
   void _loadData() {

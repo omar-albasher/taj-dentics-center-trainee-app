@@ -1,3 +1,4 @@
+import 'package:trainee_app/features/attendance/data/attendance_queue_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -217,4 +218,48 @@ void main() {
       expect(find.text('إغلاق'), findsOneWidget);
     });
   });
+
+  group('Offline Attendance Queue tests (Phase A2)', () {
+    test('QueuedAttendance serializes and deserializes correctly', () {
+      final now = DateTime(2026, 10, 24, 10, 15);
+      final item = QueuedAttendance(
+        id: '123456789',
+        qrToken: 'test-token-uuid',
+        scannedAt: now,
+        retryCount: 2,
+      );
+
+      final json = item.toJson();
+      expect(json['id'], '123456789');
+      expect(json['qr_token'], 'test-token-uuid');
+      expect(json['scanned_at'], now.toIso8601String());
+      expect(json['retry_count'], 2);
+
+      final revived = QueuedAttendance.fromJson(json);
+      expect(revived.id, item.id);
+      expect(revived.qrToken, item.qrToken);
+      expect(revived.scannedAt, item.scannedAt);
+      expect(revived.retryCount, item.retryCount);
+    });
+
+    test('AttendanceQueueService enqueues and prevents duplicates', () async {
+      final service = AttendanceQueueService.instance;
+      final now = DateTime.now();
+
+      await service.enqueue(qrToken: 'token-abc', scannedAt: now);
+      var count = await service.getPendingCount();
+      expect(count, 1);
+
+      // Duplicate scan of same token shouldn't create new queue entry
+      await service.enqueue(qrToken: 'token-abc', scannedAt: now);
+      count = await service.getPendingCount();
+      expect(count, 1);
+
+      // Second unique token increments queue
+      await service.enqueue(qrToken: 'token-def', scannedAt: now);
+      count = await service.getPendingCount();
+      expect(count, 2);
+    });
+  });
+
 }

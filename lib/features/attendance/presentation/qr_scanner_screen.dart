@@ -63,19 +63,55 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       if (!mounted) return;
 
       final success = data['success'] == true;
+      final isOfflineQueued = data['offline_queued'] == true;
+      final isAlreadyRecorded = data['already_recorded'] == true;
       final message = data['message'] ?? data['error'] ?? '';
 
-      await _showResultDialog(success: success, message: message);
+      await _showResultDialog(
+        success: success,
+        isOfflineQueued: isOfflineQueued,
+        isAlreadyRecorded: isAlreadyRecorded,
+        message: message,
+      );
     } catch (e) {
       if (!mounted) return;
-      await _showResultDialog(success: false, message: AppErrorHandler.friendlyMessage(e));
+      await _showResultDialog(
+        success: false,
+        isOfflineQueued: false,
+        isAlreadyRecorded: false,
+        message: AppErrorHandler.friendlyMessage(e),
+      );
     }
   }
 
   Future<void> _showResultDialog({
     required bool success,
+    required bool isOfflineQueued,
+    required bool isAlreadyRecorded,
     required String message,
   }) async {
+    final IconData dialogIcon;
+    final Color dialogColor;
+    final String dialogTitle;
+
+    if (isOfflineQueued) {
+      dialogIcon = Icons.cloud_queue_rounded;
+      dialogColor = AppColors.gold;
+      dialogTitle = 'تم الحفظ أوفلاين';
+    } else if (isAlreadyRecorded) {
+      dialogIcon = Icons.info_outline_rounded;
+      dialogColor = AppColors.warning;
+      dialogTitle = 'مسجل مسبقاً';
+    } else if (success) {
+      dialogIcon = Icons.check_circle_rounded;
+      dialogColor = AppColors.success;
+      dialogTitle = 'تم التسجيل بنجاح ✓';
+    } else {
+      dialogIcon = Icons.error_outline_rounded;
+      dialogColor = AppColors.error;
+      dialogTitle = 'فشل التسجيل';
+    }
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -86,17 +122,17 @@ class _QrScannerScreenState extends State<QrScannerScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              success ? Icons.check_circle : Icons.error_outline,
-              color: success ? AppColors.success : AppColors.error,
+              dialogIcon,
+              color: dialogColor,
               size: Responsive.iconSize(context, 72),
             ),
             SizedBox(height: Responsive.spacing(context, 16)),
             Text(
-              success ? 'تم التسجيل بنجاح ✓' : 'فشل التسجيل',
+              dialogTitle,
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, 18),
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: dialogColor,
                 fontFamily: 'Cairo',
               ),
             ),
@@ -108,6 +144,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
                 fontSize: Responsive.fontSize(context, 14),
                 color: AppColors.textSecondary,
                 fontFamily: 'Cairo',
+                height: 1.4,
               ),
             ),
           ],
@@ -117,7 +154,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: success ? AppColors.success : AppColors.gold,
+                backgroundColor: dialogColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -167,7 +204,7 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(
-          'للحضور QR مسح',
+          'مسح رمز QR للحضور',
           style: TextStyle(
             fontFamily: 'Cairo',
             fontSize: Responsive.fontSize(context, 18),
@@ -234,27 +271,23 @@ class _QrScannerScreenState extends State<QrScannerScreen>
               height: scanSize,
               child: Stack(
                 children: [
-                  // Top Left
                   Positioned(
                     top: 0,
                     left: 0,
                     child: _Corner(color: AppColors.gold),
                   ),
-                  // Top Right
                   Positioned(
                     top: 0,
                     right: 0,
                     child: Transform.scale(
                         scaleX: -1, child: _Corner(color: AppColors.gold)),
                   ),
-                  // Bottom Left
                   Positioned(
                     bottom: 0,
                     left: 0,
                     child: Transform.scale(
                         scaleY: -1, child: _Corner(color: AppColors.gold)),
                   ),
-                  // Bottom Right
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -268,13 +301,13 @@ class _QrScannerScreenState extends State<QrScannerScreen>
             ),
           ),
 
-          // Bottom text
+          // Bottom instruction text
           Positioned(
             bottom: Responsive.spacing(context, 60),
             left: 0,
             right: 0,
             child: Text(
-              'QR وجّه الكاميرا نحو رمز ',
+              'وجّه الكاميرا نحو رمز QR المعروض',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -318,7 +351,7 @@ class _Corner extends StatelessWidget {
 class _CornerPainter extends CustomPainter {
   final Color color;
 
-  _CornerPainter({required this.color});
+  const _CornerPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
