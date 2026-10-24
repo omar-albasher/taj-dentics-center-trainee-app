@@ -10,6 +10,7 @@ import '../../features/payments/presentation/payments_screen.dart';
 import '../../features/surveys/presentation/surveys_screen.dart';
 import '../../features/surveys/presentation/survey_form_screen.dart';
 import '../../features/surveys/domain/survey_model.dart';
+import '../../features/courses/presentation/course_materials_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -21,6 +22,7 @@ class AppRouter {
   static const home = '/home';
   static const qrScanner = '/qr-scanner';
   static const courses = '/courses';
+  static const courseMaterials = '/course-materials';
   static const payments = '/payments';
   static const surveys = '/surveys';
   static const surveyForm = '/survey-form';
@@ -75,6 +77,18 @@ class AppRouter {
       GoRoute(
         path: courses,
         builder: (_, __) => const CoursesScreen(),
+      ),
+      GoRoute(
+        path: courseMaterials,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final courseId = extra['course_id'] as String? ?? '';
+          final courseName = extra['course_name'] as String? ?? 'مواد الكورس';
+          return CourseMaterialsScreen(
+            courseId: courseId,
+            courseName: courseName,
+          );
+        },
       ),
       GoRoute(
         path: payments,

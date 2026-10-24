@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/courses_repository.dart';
 
@@ -234,6 +235,52 @@ class _CoursesScreenState extends State<CoursesScreen> {
                         fontSize: Responsive.fontSize(context, 12),
                         color: AppColors.textSecondary,
                         fontFamily: 'Cairo',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(color: AppColors.divider, height: 1),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () {
+                        final courseId = course['course_id'] as String? ?? '';
+                        final courseName =
+                            course['course_name'] as String? ?? '';
+                        context.push(
+                          AppRouter.courseMaterials,
+                          extra: {
+                            'course_id': courseId,
+                            'course_name': courseName,
+                          },
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.folder_shared_outlined,
+                              color: AppColors.gold,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'المواد والمرفقات التعليمية',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.gold,
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.gold,
+                              size: 14,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
