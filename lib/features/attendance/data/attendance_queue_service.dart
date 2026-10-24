@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -91,6 +92,19 @@ class AttendanceQueueService {
     return queue.length;
   }
 
+  Timer? _syncTimer;
+
+  void startPeriodicSync({Duration interval = const Duration(minutes: 2)}) {
+    _syncTimer?.cancel();
+    processQueue();
+    _syncTimer = Timer.periodic(interval, (_) => processQueue());
+  }
+
+  void stopPeriodicSync() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
   /// Processes pending items in the offline queue and sends them to smart-responder.
   /// Returns the number of successfully synced attendance items.
   Future<int> processQueue() async {
@@ -102,14 +116,14 @@ class AttendanceQueueService {
       if (queue.isEmpty) return 0;
 
       final now = DateTime.now();
-      final updatedQueue = <QueuedAttendance>[];
+      final resolvedIds = <String>{};
       int syncedCount = 0;
 
       for (final item in queue) {
-        // Discard items that have exceeded the 35-minute maximum window (30m grace + 5m buffer)
-        final ageMinutes = now.difference(item.scannedAt).inMinutes;
-        if (ageMinutes > 35) {
-          // Drop stale expired request to avoid infinite retry loops
+        // Drop items that have exceeded 24 hours to prevent stale retry loops
+        final ageHours = now.difference(item.scannedAt).inHours;
+        if (ageHours > 24) {
+          resolvedIds.add(item.id);
           continue;
         }
 
@@ -127,34 +141,37 @@ class AttendanceQueueService {
               : <String, dynamic>{};
 
           if (data['success'] == true) {
-            // Either recorded newly or already recorded (200) -> remove from queue
+            // Either recorded newly or already recorded (200) -> mark resolved
             syncedCount++;
-          } else {
-            // Keep in queue with incremented retry count
-            updatedQueue.add(item.copyWith(retryCount: item.retryCount + 1));
+            resolvedIds.add(item.id);
           }
         } on FunctionException catch (fe) {
           final details = fe.details;
           if (details is Map && details['already_recorded'] == true) {
-            // Already recorded -> Safe to drop from queue
+            // Already recorded -> mark resolved
             syncedCount++;
+            resolvedIds.add(item.id);
           } else if (fe.status == 400 || fe.status == 403) {
             // Unrecoverable (e.g. not enrolled, expired grace period, invalid token) -> Drop
-            continue;
-          } else {
-            // 500 or server error -> Retry later
-            updatedQueue.add(item.copyWith(retryCount: item.retryCount + 1));
+            resolvedIds.add(item.id);
           }
         } catch (_) {
           // Network connection error / offline -> Retain for subsequent sync
-          updatedQueue.add(item.copyWith(retryCount: item.retryCount + 1));
         }
       }
 
-      await _saveQueue(updatedQueue);
+      // Race-condition safe: only remove resolved items from the fresh queue,
+      // preserving any items that were newly enqueued while processing was in-flight.
+      if (resolvedIds.isNotEmpty) {
+        final freshQueue = await getQueue();
+        freshQueue.removeWhere((item) => resolvedIds.contains(item.id));
+        await _saveQueue(freshQueue);
+      }
+
       return syncedCount;
     } finally {
       _isProcessing = false;
     }
   }
 }
+
