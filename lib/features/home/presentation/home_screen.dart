@@ -53,12 +53,17 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBg,
-        title: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.gold, fontFamily: 'Cairo')),
-        content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟', style: TextStyle(color: AppColors.textPrimary, fontFamily: 'Cairo')),
+        title: const Text('تسجيل الخروج',
+            style: TextStyle(color: AppColors.gold, fontFamily: 'Cairo')),
+        content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟',
+            style:
+                TextStyle(color: AppColors.textPrimary, fontFamily: 'Cairo')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('إلغاء', style: TextStyle(color: AppColors.textSecondary, fontFamily: 'Cairo')),
+            child: const Text('إلغاء',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontFamily: 'Cairo')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -79,7 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('حدث خطأ أثناء تسجيل الخروج'), backgroundColor: AppColors.error),
+            const SnackBar(
+                content: Text('حدث خطأ أثناء تسجيل الخروج'),
+                backgroundColor: AppColors.error),
           );
         }
       }
@@ -162,180 +169,185 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
-          // Content
-          SliverPadding(
-            padding: Responsive.pagePadding(context).copyWith(
-              top: Responsive.spacing(context, 20),
-              bottom: Responsive.spacing(context, 20),
-            ),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Stats Row
-                FutureBuilder<Map<String, dynamic>>(
-                  future: _statsFuture,
-                  builder: (context, snapshot) {
-                    final stats = snapshot.data;
-                    final loading =
-                        snapshot.connectionState == ConnectionState.waiting;
-                    final hasError = snapshot.hasError;
-                    final isUnlinked = stats?['is_unlinked'] == true;
+            // Content
+            SliverPadding(
+              padding: Responsive.pagePadding(context).copyWith(
+                top: Responsive.spacing(context, 20),
+                bottom: Responsive.spacing(context, 20),
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Stats Row
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: _statsFuture,
+                    builder: (context, snapshot) {
+                      final stats = snapshot.data;
+                      final loading =
+                          snapshot.connectionState == ConnectionState.waiting;
+                      final hasError = snapshot.hasError;
+                      final isUnlinked = stats?['is_unlinked'] == true;
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isUnlinked) ...[
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.warning),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.info_outline, color: AppColors.warning, size: 24),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'حسابك قيد التفعيل. يُرجى مراجعة إدارة المركز لربط ملفك التدريبي.',
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontFamily: 'Cairo',
-                                      fontSize: 13,
-                                      height: 1.4,
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isUnlinked) ...[
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.warning.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.warning),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: AppColors.warning, size: 24),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'حسابك قيد التفعيل. يُرجى مراجعة إدارة المركز لربط ملفك التدريبي.',
+                                      style: TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontFamily: 'Cairo',
+                                        fontSize: 13,
+                                        height: 1.4,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _StatCard(
-                                title: 'الحضور',
-                                value: loading
-                                    ? '...'
-                                    : hasError
-                                        ? '-'
-                                        : '${stats?['avg_attendance'] ?? 0}%',
-                                icon: Icons.check_circle_outline,
-                                color: AppColors.success,
-                              ),
-                            ),
-                            SizedBox(width: Responsive.spacing(context, 12)),
-                            Expanded(
-                              child: _StatCard(
-                                title: 'المدفوعات',
-                                value: loading
-                                    ? '...'
-                                    : hasError
-                                        ? '-'
-                                        : '${stats?['payment_status'] ?? '-'}',
-                                icon: Icons.payment_outlined,
-                                color: AppColors.warning,
-                              ),
-                            ),
-                            SizedBox(width: Responsive.spacing(context, 12)),
-                            Expanded(
-                              child: _StatCard(
-                                title: 'الكورسات',
-                                value: loading
-                                    ? '...'
-                                    : hasError
-                                        ? '-'
-                                        : '${stats?['courses_count'] ?? 0}',
-                                icon: Icons.school_outlined,
-                                color: AppColors.gold,
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-
-                SizedBox(height: Responsive.spacing(context, 16)),
-
-                // Next Session Card (Phase A4)
-                FutureBuilder<Map<String, dynamic>?>(
-                  future: _nextSessionFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const NextSessionCard(session: null, isLoading: true);
-                    }
-                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return NextSessionCard(session: snapshot.data);
-                  },
-                ),
-
-                SizedBox(height: Responsive.spacing(context, 8)),
-
-                // Section title
-                Text(
-                  'الخدمات',
-                  style: TextStyle(
-                    fontSize: Responsive.fontSize(context, 18),
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gold,
-                    fontFamily: 'Cairo',
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _StatCard(
+                                  title: 'الحضور',
+                                  value: loading
+                                      ? '...'
+                                      : hasError
+                                          ? '-'
+                                          : '${stats?['avg_attendance'] ?? 0}%',
+                                  icon: Icons.check_circle_outline,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                              SizedBox(width: Responsive.spacing(context, 12)),
+                              Expanded(
+                                child: _StatCard(
+                                  title: 'المدفوعات',
+                                  value: loading
+                                      ? '...'
+                                      : hasError
+                                          ? '-'
+                                          : '${stats?['payment_status'] ?? '-'}',
+                                  icon: Icons.payment_outlined,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                              SizedBox(width: Responsive.spacing(context, 12)),
+                              Expanded(
+                                child: _StatCard(
+                                  title: 'الكورسات',
+                                  value: loading
+                                      ? '...'
+                                      : hasError
+                                          ? '-'
+                                          : '${stats?['courses_count'] ?? 0}',
+                                  icon: Icons.school_outlined,
+                                  color: AppColors.gold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ),
-                SizedBox(height: Responsive.spacing(context, 12)),
 
-                // Menu Items
-                _MenuItem(
-                  data: _MenuItemData(
-                    icon: Icons.qr_code_scanner,
-                    title: AppStrings.scanQr,
-                    subtitle: 'سجّل حضورك بمسح الرمز',
-                    color: AppColors.gold,
-                    onTap: () => context.push(AppRouter.qrScanner),
+                  SizedBox(height: Responsive.spacing(context, 16)),
+
+                  // Next Session Card (Phase A4)
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: _nextSessionFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const NextSessionCard(
+                            session: null, isLoading: true);
+                      }
+                      if (snapshot.hasError ||
+                          !snapshot.hasData ||
+                          snapshot.data == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return NextSessionCard(session: snapshot.data);
+                    },
                   ),
-                ),
-                SizedBox(height: Responsive.spacing(context, 12)),
-                _MenuItem(
-                  data: _MenuItemData(
-                    icon: Icons.school_outlined,
-                    title: AppStrings.myCourses,
-                    subtitle: 'تابع تقدمك الأكاديمي',
-                    color: AppColors.darkGreen,
-                    onTap: () => context.push(AppRouter.courses),
+
+                  SizedBox(height: Responsive.spacing(context, 8)),
+
+                  // Section title
+                  Text(
+                    'الخدمات',
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(context, 18),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
+                      fontFamily: 'Cairo',
+                    ),
                   ),
-                ),
-                SizedBox(height: Responsive.spacing(context, 12)),
-                _MenuItem(
-                  data: _MenuItemData(
-                    icon: Icons.payment_outlined,
-                    title: AppStrings.payments,
-                    subtitle: 'حالة مدفوعاتك',
-                    color: const Color(0xFF8A8A8A),
-                    onTap: () => context.push(AppRouter.payments),
+                  SizedBox(height: Responsive.spacing(context, 12)),
+
+                  // Menu Items
+                  _MenuItem(
+                    data: _MenuItemData(
+                      icon: Icons.qr_code_scanner,
+                      title: AppStrings.scanQr,
+                      subtitle: 'سجّل حضورك بمسح الرمز',
+                      color: AppColors.gold,
+                      onTap: () => context.push(AppRouter.qrScanner),
+                    ),
                   ),
-                ),
-                SizedBox(height: Responsive.spacing(context, 12)),
-                _MenuItem(
-                  data: _MenuItemData(
-                    icon: Icons.assignment_outlined,
-                    title: AppStrings.surveys,
-                    subtitle: 'استبيانات الجلسات',
-                    color: AppColors.gold,
-                    onTap: () => context.push(AppRouter.surveys),
+                  SizedBox(height: Responsive.spacing(context, 12)),
+                  _MenuItem(
+                    data: _MenuItemData(
+                      icon: Icons.school_outlined,
+                      title: AppStrings.myCourses,
+                      subtitle: 'تابع تقدمك الأكاديمي',
+                      color: AppColors.darkGreen,
+                      onTap: () => context.push(AppRouter.courses),
+                    ),
                   ),
-                ),
-              ]),
+                  SizedBox(height: Responsive.spacing(context, 12)),
+                  _MenuItem(
+                    data: _MenuItemData(
+                      icon: Icons.payment_outlined,
+                      title: AppStrings.payments,
+                      subtitle: 'حالة مدفوعاتك',
+                      color: const Color(0xFF8A8A8A),
+                      onTap: () => context.push(AppRouter.payments),
+                    ),
+                  ),
+                  SizedBox(height: Responsive.spacing(context, 12)),
+                  _MenuItem(
+                    data: _MenuItemData(
+                      icon: Icons.assignment_outlined,
+                      title: AppStrings.surveys,
+                      subtitle: 'استبيانات الجلسات',
+                      color: AppColors.gold,
+                      onTap: () => context.push(AppRouter.surveys),
+                    ),
+                  ),
+                ]),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _StatCard extends StatelessWidget {
