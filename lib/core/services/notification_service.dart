@@ -153,26 +153,33 @@ class NotificationService {
     }
   }
 
-  /// Cleanly delete device token on logout
+  /// Cleanly delete device token on logout with independent error isolation
   Future<void> unregisterDeviceToken() async {
     if (!_firebaseAvailable) return;
 
-    try {
-      if (_currentToken != null) {
+    // 1. Delete token from Supabase backend
+    if (_currentToken != null) {
+      try {
         final client = Supabase.instance.client;
         await client
             .from('user_fcm_tokens')
             .delete()
             .eq('fcm_token', _currentToken!);
+        debugPrint('[NotificationService] Deleted token from Supabase backend');
+      } catch (e) {
+        debugPrint('[NotificationService] Failed to delete token from Supabase: $e');
       }
+    }
 
+    // 2. Invalidate token with Firebase independently (even if backend call failed)
+    try {
       final messaging = FirebaseMessaging.instance;
       // ignore: deprecated_member_use
       await messaging.deleteToken();
       _currentToken = null;
-      debugPrint('[NotificationService] FCM token cleanly deleted on logout');
+      debugPrint('[NotificationService] FCM token cleanly deleted from Firebase SDK');
     } catch (e) {
-      debugPrint('[NotificationService] Failed to unregister token on logout: $e');
+      debugPrint('[NotificationService] Failed to deleteToken from Firebase SDK: $e');
     }
   }
 
