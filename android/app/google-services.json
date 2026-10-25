@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "906098161820",
+    "project_id": "taj-dentics",
+    "storage_bucket": "taj-dentics.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:906098161820:android:bef71939065baf176c9559",
+        "android_client_info": {
+          "package_name": "com.tajdentics.trainee_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC77jeF7kIYppTOlq1iX7l8mZWfxYgpYnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
