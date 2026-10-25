@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,11 @@ void main() async {
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
   );
+
+  await NotificationService.instance.initialize();
+  if (Supabase.instance.client.auth.currentSession != null) {
+    NotificationService.instance.registerDeviceToken();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   AppRouter.hasSeenIntro = prefs.getBool('intro_seen') ?? false;
