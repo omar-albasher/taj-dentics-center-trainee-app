@@ -24,7 +24,7 @@ class NotificationService {
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'taj_reminders',
-    'تذكيرات تاج دنتكس',
+    'إشعارات مركز تاج دينتكس',
     description: 'إشعارات تذكير الجلسات والاستبيانات ومستحقات الدفع',
     importance: Importance.max,
     playSound: true,
@@ -44,8 +44,9 @@ class NotificationService {
       await Firebase.initializeApp();
       _firebaseAvailable = true;
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      debugPrint('[NotificationService] Firebase initialized successfully');
     } catch (e) {
-      debugPrint('Firebase initialize skipped or pending configuration: $e');
+      debugPrint('[NotificationService] Firebase initialize failed: $e');
       _initialized = true;
       return;
     }
@@ -80,8 +81,14 @@ class NotificationService {
       provisional: false,
     );
 
-    // Listen to token registration stream
+    // Listen to token refresh streams
     messaging.onRegistered.listen((token) {
+      _currentToken = token;
+      _sendTokenToBackend(token);
+    });
+
+    // ignore: deprecated_member_use
+    messaging.onTokenRefresh.listen((token) {
       _currentToken = token;
       _sendTokenToBackend(token);
     });
@@ -136,13 +143,30 @@ class NotificationService {
 
   /// Register or refresh device FCM token with Supabase backend
   Future<void> registerDeviceToken() async {
-    if (!_firebaseAvailable) return;
+    if (!_firebaseAvailable) {
+      debugPrint('[NotificationService] Firebase not available, skipping token registration');
+      return;
+    }
+
+    try {
+      final messaging = FirebaseMessaging.instance;
+      // Fetch token directly on mobile platforms
+      // ignore: deprecated_member_use
+      final token = await messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        _currentToken = token;
+        await _sendTokenToBackend(token);
+        return;
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] getToken failed, falling back to register(): $e');
+    }
 
     try {
       final messaging = FirebaseMessaging.instance;
       await messaging.register();
     } catch (e) {
-      debugPrint('Failed to register FCM: $e');
+      debugPrint('[NotificationService] FCM register failed: $e');
     }
   }
 
@@ -170,17 +194,25 @@ class NotificationService {
   Future<void> _sendTokenToBackend(String fcmToken) async {
     final client = Supabase.instance.client;
     final currentUserId = client.auth.currentUser?.id;
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      debugPrint('[NotificationService] Cannot send token: user not logged in');
+      return;
+    }
 
     final deviceType = kIsWeb
         ? 'web'
         : (Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'android'));
 
-    await client.rpc('register_fcm_token', params: {
-      'p_fcm_token': fcmToken,
-      'p_device_type': deviceType,
-      'p_device_id': null,
-    });
+    try {
+      await client.rpc('register_fcm_token', params: {
+        'p_fcm_token': fcmToken,
+        'p_device_type': deviceType,
+        'p_device_id': null,
+      });
+      debugPrint('[NotificationService] FCM token registered in Supabase for user $currentUserId');
+    } catch (e) {
+      debugPrint('[NotificationService] Error saving token to Supabase: $e');
+    }
   }
 
   void _handleNavigation(String route) {

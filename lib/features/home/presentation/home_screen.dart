@@ -26,7 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
-        AttendanceQueueService.instance.startPeriodicSync();
+    AttendanceQueueService.instance.startPeriodicSync();
+    NotificationService.instance.registerDeviceToken();
   }
 
   @override
