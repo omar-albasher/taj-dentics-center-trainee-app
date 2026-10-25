@@ -8,7 +8,6 @@ import '../router/app_router.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Background message received while app is terminated or in background
   try {
     await Firebase.initializeApp();
   } catch (_) {}
@@ -39,7 +38,7 @@ class NotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // 1. Safe Firebase initialization (Graceful fallback if google-services.json not yet dropped)
+    // 1. Safe Firebase initialization
     try {
       await Firebase.initializeApp();
       _firebaseAvailable = true;
@@ -51,7 +50,7 @@ class NotificationService {
       return;
     }
 
-    // 2. Initialize Flutter Local Notifications for foreground heads-up banner
+    // 2. Initialize Flutter Local Notifications for foreground banner
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
 
@@ -65,7 +64,6 @@ class NotificationService {
       },
     );
 
-    // Create high importance notification channel on Android
     final androidImpl = _localNotifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     if (androidImpl != null) {
@@ -81,19 +79,16 @@ class NotificationService {
       provisional: false,
     );
 
-    // Listen to token refresh streams
-    messaging.onRegistered.listen((token) {
-      _currentToken = token;
-      _sendTokenToBackend(token);
-    });
-
+    // 4. Listen to standard FCM Token Refresh stream
     // ignore: deprecated_member_use
     messaging.onTokenRefresh.listen((token) {
-      _currentToken = token;
-      _sendTokenToBackend(token);
+      if (token.isNotEmpty) {
+        _currentToken = token;
+        _sendTokenToBackend(token);
+      }
     });
 
-    // 4. Foreground notifications handler (show local notification when app is open)
+    // 5. Foreground notifications handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       final android = message.notification?.android;
@@ -119,7 +114,7 @@ class NotificationService {
       }
     });
 
-    // 5. Handle notification click when app is opened from background
+    // 6. Handle notification tap from background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final route = message.data['route'] as String?;
       if (route != null) {
@@ -127,7 +122,7 @@ class NotificationService {
       }
     });
 
-    // 6. Handle cold start notification tap
+    // 7. Handle cold start notification tap
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       final route = initialMessage.data['route'] as String?;
@@ -143,39 +138,26 @@ class NotificationService {
 
   /// Register or refresh device FCM token with Supabase backend
   Future<void> registerDeviceToken() async {
-    if (!_firebaseAvailable) {
-      debugPrint('[NotificationService] Firebase not available, skipping token registration');
-      return;
-    }
+    if (!_firebaseAvailable) return;
 
     try {
       final messaging = FirebaseMessaging.instance;
-      // Fetch token directly on mobile platforms
       // ignore: deprecated_member_use
       final token = await messaging.getToken();
       if (token != null && token.isNotEmpty) {
         _currentToken = token;
         await _sendTokenToBackend(token);
-        return;
       }
     } catch (e) {
-      debugPrint('[NotificationService] getToken failed, falling back to register(): $e');
-    }
-
-    try {
-      final messaging = FirebaseMessaging.instance;
-      await messaging.register();
-    } catch (e) {
-      debugPrint('[NotificationService] FCM register failed: $e');
+      debugPrint('[NotificationService] getToken failed: $e');
     }
   }
 
-  /// Cleanly unregister device token on logout
+  /// Cleanly delete device token on logout
   Future<void> unregisterDeviceToken() async {
     if (!_firebaseAvailable) return;
 
     try {
-      final messaging = FirebaseMessaging.instance;
       if (_currentToken != null) {
         final client = Supabase.instance.client;
         await client
@@ -184,20 +166,20 @@ class NotificationService {
             .eq('fcm_token', _currentToken!);
       }
 
-      await messaging.unregister();
+      final messaging = FirebaseMessaging.instance;
+      // ignore: deprecated_member_use
+      await messaging.deleteToken();
       _currentToken = null;
+      debugPrint('[NotificationService] FCM token cleanly deleted on logout');
     } catch (e) {
-      debugPrint('Failed to unregister FCM token on logout: $e');
+      debugPrint('[NotificationService] Failed to unregister token on logout: $e');
     }
   }
 
   Future<void> _sendTokenToBackend(String fcmToken) async {
     final client = Supabase.instance.client;
     final currentUserId = client.auth.currentUser?.id;
-    if (currentUserId == null) {
-      debugPrint('[NotificationService] Cannot send token: user not logged in');
-      return;
-    }
+    if (currentUserId == null) return;
 
     final deviceType = kIsWeb
         ? 'web'
@@ -209,7 +191,7 @@ class NotificationService {
         'p_device_type': deviceType,
         'p_device_id': null,
       });
-      debugPrint('[NotificationService] FCM token registered in Supabase for user $currentUserId');
+      debugPrint('[NotificationService] FCM token registered for user $currentUserId');
     } catch (e) {
       debugPrint('[NotificationService] Error saving token to Supabase: $e');
     }
