@@ -5,6 +5,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AppErrorHandler {
   AppErrorHandler._();
 
+  static const Map<String, String> _domainMessages = {
+    'COHORT_CAPACITY_REACHED':
+        'المجموعة ممتلئة — يمكنك الانضمام إلى قائمة الانتظار',
+    'COHORT_CAPACITY_BELOW_ENROLLED':
+        'لا يمكن تقليل السعة إلى أقل من عدد المتدربين المسجلين حالياً',
+    'COHORT_CAPACITY_INVALID': 'قيمة السعة غير صالحة — يجب أن تكون أكبر من صفر',
+    'COHORT_HAS_AVAILABLE_SEATS':
+        'توجد مقاعد متاحة في هذه المجموعة — التسجيل يتم عبر الإدارة',
+    'COHORT_NOT_ACTIVE': 'هذه المجموعة غير مفعّلة',
+    'COHORT_NOT_FOUND': 'المجموعة غير موجودة',
+    'TRAINEE_NOT_FOUND': 'حساب المتدرب غير موجود أو غير مفعّل',
+    'ALREADY_ENROLLED': 'أنت مسجل بالفعل في هذه المجموعة',
+    'ALREADY_ON_WAITLIST': 'أنت موجود مسبقاً في قائمة الانتظار',
+    'WAITLIST_NOT_FOUND': 'لم يتم العثور على طلب الانتظار',
+    'WAITLIST_NOT_ACTIVE': 'طلب الانتظار لم يعد فعّالاً — حدّث القائمة',
+    'WAITLIST_ENROLLMENT_MISSING':
+        'لا يوجد تسجيل فعلي مرتبط بطلب الانتظار — راجع الإدارة',
+    'WAITLIST_PROMOTION_FIELDS_REQUIRED':
+        'بيانات ترقية طلب الانتظار غير مكتملة',
+    'WAITLIST_IDENTITY_IMMUTABLE': 'لا يمكن تعديل هوية طلب الانتظار',
+    'WAITLIST_INITIAL_STATUS_INVALID': 'حالة طلب الانتظار الأولية غير صالحة',
+    'INVALID_WAITLIST_TRANSITION':
+        'لا يمكن تنفيذ هذا الانتقال على طلب الانتظار',
+    'ADMIN_ONLY': 'هذه العملية مخصصة للإدارة فقط',
+    'NOT_AUTHORIZED': 'ليس لديك الصلاحيات الكافية لتنفيذ هذا الإجراء',
+    'AUTH_REQUIRED': 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً',
+    'INVALID_TOTAL_DUE': 'قيمة المبلغ المطلوب غير صالحة',
+    'INVALID_DISCOUNT': 'قيمة الخصم غير صالحة',
+    'INVALID_CURRENCY': 'العملة غير مدعومة — استخدم SYP أو USD',
+  };
+
   /// Converts any technical or database exception into a clear, user-friendly Arabic message.
   static String friendlyMessage(Object? error) {
     if (error == null) {
@@ -49,7 +80,8 @@ class AppErrorHandler {
 
     // If an application exception was already thrown with friendly Arabic text (e.g. Exception('غير مصرح'))
     if (_containsArabic(rawString)) {
-      final cleaned = rawString.replaceAll(RegExp(r'^Exception:\s*'), '').trim();
+      final cleaned =
+          rawString.replaceAll(RegExp(r'^Exception:\s*'), '').trim();
       if (cleaned.isNotEmpty && !cleaned.contains('PostgrestException')) {
         return cleaned;
       }
@@ -61,6 +93,9 @@ class AppErrorHandler {
   static String _handlePostgrestException(PostgrestException e) {
     final code = e.code;
     final msg = e.message.toLowerCase();
+
+    final domainMessage = _domainMessage(e);
+    if (domainMessage != null) return domainMessage;
 
     // Specific PostgreSQL error codes
     switch (code) {
@@ -93,16 +128,32 @@ class AppErrorHandler {
     return 'حدث خطأ في قاعدة البيانات (${code ?? "غير محدد"})، يرجى إعادة المحاولة';
   }
 
+  static String? _domainMessage(PostgrestException e) {
+    final raw = e.message.trim();
+    final direct = _domainMessages[raw];
+    if (direct != null) return direct;
+
+    final details = e.details?.toString() ?? '';
+    for (final entry in _domainMessages.entries) {
+      if (raw.contains(entry.key) || details.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
   static String _handleAuthException(AuthException e) {
     final msg = e.message.toLowerCase();
 
-    if (msg.contains('invalid login credentials') || msg.contains('invalid_grant')) {
+    if (msg.contains('invalid login credentials') ||
+        msg.contains('invalid_grant')) {
       return 'بيانات تسجيل الدخول غير صحيحة، يرجى التأكد من البريد وكلمة المرور';
     }
     if (msg.contains('email not confirmed')) {
       return 'يرجى تأكيد الحساب عبر البريد الإلكتروني أولاً';
     }
-    if (msg.contains('user already registered') || msg.contains('already exists')) {
+    if (msg.contains('user already registered') ||
+        msg.contains('already exists')) {
       return 'البريد الإلكتروني مسجل بالفعل لمستخدم آخر';
     }
     if (msg.contains('password should be at least')) {
