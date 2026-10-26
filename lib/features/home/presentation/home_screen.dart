@@ -7,8 +7,10 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/home_repository.dart';
+import '../domain/referral_summary.dart';
 import '../../attendance/data/attendance_queue_service.dart';
 import 'widgets/next_session_card.dart';
+import 'widgets/referral_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _homeRepo = HomeRepository();
   late Future<Map<String, dynamic>> _statsFuture;
   late Future<Map<String, dynamic>?> _nextSessionFuture;
+  late Future<ReferralSummary?> _referralFuture;
 
   @override
   void initState() {
@@ -39,13 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _loadData() {
     _statsFuture = _homeRepo.getHomeStats();
     _nextSessionFuture = _homeRepo.getNextSession();
+    _referralFuture = _homeRepo.getReferralSummary();
   }
 
   Future<void> _refresh() async {
     setState(() {
       _loadData();
     });
-    await Future.wait([_statsFuture, _nextSessionFuture]);
+    await Future.wait([_statsFuture, _nextSessionFuture, _referralFuture]);
   }
 
   Future<void> _confirmLogout() async {
@@ -283,6 +287,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         return const SizedBox.shrink();
                       }
                       return NextSessionCard(session: snapshot.data);
+                    },
+                  ),
+
+                  // Referral card (Phase A5)
+                  FutureBuilder<ReferralSummary?>(
+                    future: _referralFuture,
+                    builder: (context, snapshot) {
+                      final summary = snapshot.data;
+                      if (summary == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          top: Responsive.spacing(context, 16),
+                        ),
+                        child: ReferralCard(summary: summary),
+                      );
                     },
                   ),
 

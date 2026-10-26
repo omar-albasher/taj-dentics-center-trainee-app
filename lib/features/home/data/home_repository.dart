@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/trainee_session.dart';
+import '../domain/referral_summary.dart';
 
 class HomeRepository {
   final _client = Supabase.instance.client;
@@ -8,7 +9,8 @@ class HomeRepository {
     final user = _client.auth.currentUser;
     if (user == null) return _emptyStats();
 
-    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
+    final traineeId =
+        explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
     if (traineeId == null) return _emptyStats(isUnlinked: true);
 
     // تشغيل الاستعلامات الثلاثة بالتوازي لتوفير زمن الانتظار
@@ -67,11 +69,13 @@ class HomeRepository {
   }
 
   /// جلب الجلسة القادمة للمتدرب بناءً على تسجيلاته النشطة
-  Future<Map<String, dynamic>?> getNextSession({String? explicitTraineeId}) async {
+  Future<Map<String, dynamic>?> getNextSession(
+      {String? explicitTraineeId}) async {
     final user = _client.auth.currentUser;
     if (user == null) return null;
 
-    final traineeId = explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
+    final traineeId =
+        explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
     if (traineeId == null) return null;
 
     try {
@@ -84,6 +88,22 @@ class HomeRepository {
           .maybeSingle();
 
       return res != null ? Map<String, dynamic>.from(res) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// ملخص كود الإحالة ورصيد الخصومات (يُخفى بهدوء عند غياب الجلسة أو الخطأ)
+  Future<ReferralSummary?> getReferralSummary() async {
+    if (_client.auth.currentUser == null) return null;
+
+    try {
+      final res = await _client.rpc('get_my_referral_summary');
+      if (res is Map) {
+        final summary = ReferralSummary.fromMap(Map<String, dynamic>.from(res));
+        return summary.hasCode ? summary : null;
+      }
+      return null;
     } catch (_) {
       return null;
     }

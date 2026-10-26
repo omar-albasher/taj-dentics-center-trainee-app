@@ -34,6 +34,17 @@ class AppErrorHandler {
     'INVALID_TOTAL_DUE': 'قيمة المبلغ المطلوب غير صالحة',
     'INVALID_DISCOUNT': 'قيمة الخصم غير صالحة',
     'INVALID_CURRENCY': 'العملة غير مدعومة — استخدم SYP أو USD',
+    'REFERRAL_CODE_INVALID': 'كود الإحالة غير صحيح',
+    'REFERRAL_REFERRER_INACTIVE': 'حساب صاحب كود الإحالة غير مفعّل',
+    'REFERRAL_SELF': 'لا يمكن استخدام كود الإحالة الخاص بك',
+    'REFERRAL_REFEREE_ENROLLED':
+        'أنت مسجل حالياً في دورة من نفس نوع هذه الدورة — لا يمكن تطبيق الإحالة',
+    'REFERRAL_ALREADY_REFERRED': 'تم استخدام كود إحالة لك في هذه الدورة مسبقاً',
+    'REFERRAL_MUTUAL': 'لا يمكن تبادل الإحالة بين المتدربين في الدورة نفسها',
+    'REFERRAL_NOTHING_DUE': 'لا يوجد مبلغ مستحق بعد الخصم لتطبيق خصم الإحالة',
+    'REFERRAL_DISCOUNT_TOO_HIGH':
+        'قيمة خصم الإحالة أكبر من المبلغ المتبقي بعد الخصم اليدوي',
+    'REFERRAL_DISCOUNT_INVALID': 'قيمة خصم الإحالة غير صالحة',
   };
 
   /// Converts any technical or database exception into a clear, user-friendly Arabic message.
