@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import '../../../core/constants/app_colors.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../data/payments_repository.dart';
 import '../domain/payment_model.dart';
@@ -249,6 +250,37 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+
+                SizedBox(height: Responsive.spacing(context, 16)),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push(AppRouter.accountStatement),
+                    icon: const Icon(
+                      Icons.receipt_long_outlined,
+                      color: AppColors.gold,
+                    ),
+                    label: const Text(
+                      'كشف الحساب وجدول الأقساط',
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.gold),
+                      padding: EdgeInsets.symmetric(
+                        vertical: Responsive.spacing(context, 12),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
 

@@ -7,6 +7,7 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/attendance/presentation/qr_scanner_screen.dart';
 import '../../features/courses/presentation/courses_screen.dart';
 import '../../features/payments/presentation/payments_screen.dart';
+import '../../features/payments/presentation/account_statement_screen.dart';
 import '../../features/surveys/presentation/surveys_screen.dart';
 import '../../features/surveys/presentation/survey_form_screen.dart';
 import '../../features/surveys/domain/survey_model.dart';
@@ -24,6 +25,7 @@ class AppRouter {
   static const courses = '/courses';
   static const courseMaterials = '/course-materials';
   static const payments = '/payments';
+  static const accountStatement = '/account-statement';
   static const surveys = '/surveys';
   static const surveyForm = '/survey-form';
 
@@ -93,6 +95,10 @@ class AppRouter {
       GoRoute(
         path: payments,
         builder: (_, __) => const PaymentsScreen(),
+      ),
+      GoRoute(
+        path: accountStatement,
+        builder: (_, __) => const AccountStatementScreen(),
       ),
       GoRoute(
         path: surveys,

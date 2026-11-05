@@ -24,7 +24,7 @@ class HomeRepository {
           .select('attendance_percentage')
           .eq('trainee_id', traineeId),
       _client
-          .from('enrollment_financial_summary')
+          .from('enrollment_financial_summary_v2')
           .select('payment_status')
           .eq('trainee_id', traineeId),
     ]);

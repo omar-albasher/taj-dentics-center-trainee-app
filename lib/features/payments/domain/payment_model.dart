@@ -111,3 +111,133 @@ class PaymentReceipt {
 
   String get currencySymbol => currency == 'USD' ? '\$' : 'ل.س';
 }
+
+/// سطر واحد من كشف الحساب (تقرير 5) القادم من trainee_statement_v.
+class StatementEntry {
+  final String enrollmentId;
+  final String entryId;
+  final DateTime entryDate;
+  final String entryType;
+  final String description;
+  final double debit;
+  final double credit;
+  final String currency;
+  final double runningBalance;
+
+  const StatementEntry({
+    required this.enrollmentId,
+    required this.entryId,
+    required this.entryDate,
+    required this.entryType,
+    required this.description,
+    required this.debit,
+    required this.credit,
+    required this.currency,
+    required this.runningBalance,
+  });
+
+  factory StatementEntry.fromMap(Map<String, dynamic> map) {
+    return StatementEntry(
+      enrollmentId: map['enrollment_id'] ?? '',
+      entryId: map['entry_id'] ?? '',
+      entryDate:
+          (DateTime.tryParse(map['entry_date']?.toString() ?? '') ??
+                  DateTime.now())
+              .toLocal(),
+      entryType: map['entry_type'] ?? '',
+      description: map['description'] ?? '',
+      debit: (map['debit'] as num?)?.toDouble() ?? 0,
+      credit: (map['credit'] as num?)?.toDouble() ?? 0,
+      currency: map['currency'] ?? 'SYP',
+      runningBalance: (map['running_balance'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  bool get isDebit => debit > 0;
+  double get amount => isDebit ? debit : credit;
+  String get currencySymbol => currency == 'USD' ? '\$' : 'ل.س';
+
+  String get typeLabel {
+    switch (entryType) {
+      case 'initial_fee':
+        return 'رسوم';
+      case 'discount':
+        return 'خصم';
+      case 'fee_adjustment':
+        return 'تعديل';
+      case 'payment':
+        return 'دفعة';
+      case 'refund':
+        return 'استرداد';
+      default:
+        return 'حركة';
+    }
+  }
+}
+
+/// قسط واحد من installment_schedule مع مجموع المخصص له من الدفعات.
+class InstallmentScheduleItem {
+  final String id;
+  final String enrollmentId;
+  final int installmentNumber;
+  final DateTime dueDate;
+  final double amount;
+  final double paid;
+  final String currency;
+  final String? notes;
+
+  const InstallmentScheduleItem({
+    required this.id,
+    required this.enrollmentId,
+    required this.installmentNumber,
+    required this.dueDate,
+    required this.amount,
+    required this.paid,
+    required this.currency,
+    this.notes,
+  });
+
+  factory InstallmentScheduleItem.fromMap(Map<String, dynamic> map) {
+    final allocations = map['payment_allocations'] as List?;
+    final paid = allocations == null
+        ? 0.0
+        : allocations.fold<double>(
+            0,
+            (sum, a) =>
+                sum +
+                ((a is Map ? a['amount'] as num? : null)?.toDouble() ?? 0),
+          );
+
+    return InstallmentScheduleItem(
+      id: map['id'] ?? '',
+      enrollmentId: map['enrollment_id'] ?? '',
+      installmentNumber: (map['installment_number'] as num?)?.toInt() ?? 0,
+      dueDate:
+          (DateTime.tryParse(map['due_date']?.toString() ?? '') ??
+                  DateTime.now())
+              .toLocal(),
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      paid: paid,
+      currency: map['currency'] ?? 'SYP',
+      notes: map['notes'],
+    );
+  }
+
+  double get remaining {
+    final value = amount - paid;
+    return value > 0 ? value : 0;
+  }
+
+  bool get isPaid => remaining <= 0.009;
+  bool get isPartiallyPaid => !isPaid && paid > 0.009;
+
+  bool get isOverdue {
+    if (isPaid) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    return due.isBefore(today);
+  }
+
+  String get currencySymbol => currency == 'USD' ? '\$' : 'ل.س';
+}
