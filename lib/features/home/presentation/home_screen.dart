@@ -28,6 +28,23 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
     AttendanceQueueService.instance.startPeriodicSync();
     NotificationService.instance.registerDeviceToken();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePasswordState());
+  }
+
+  Future<void> _ensurePasswordState() async {
+    if (AppRouter.passwordStateChecked) return;
+    try {
+      final requiresChange =
+          await Supabase.instance.client.rpc('get_my_password_state');
+      AppRouter.passwordStateChecked = true;
+      AppRouter.mustChangePassword = requiresChange == true;
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    if (AppRouter.mustChangePassword) {
+      context.go(AppRouter.changePassword);
+    }
   }
 
   @override

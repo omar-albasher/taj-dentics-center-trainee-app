@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/app_error_handler.dart';
 import '../../../core/services/notification_service.dart';
@@ -47,11 +49,30 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      final requiresChange =
+          await Supabase.instance.client.rpc('get_my_password_state');
+      AppRouter.passwordStateChecked = true;
+      AppRouter.mustChangePassword = requiresChange == true;
+
       await NotificationService.instance.registerDeviceToken();
+
+      if (!mounted) return;
+      context.go(
+        AppRouter.mustChangePassword ? AppRouter.changePassword : AppRouter.home,
+      );
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppErrorHandler.friendlyMessage(e)), backgroundColor: AppColors.error),
+        );
+      }
+    } on PostgrestException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر التحقق من حالة كلمة المرور، يرجى إعادة المحاولة'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } catch (e) {

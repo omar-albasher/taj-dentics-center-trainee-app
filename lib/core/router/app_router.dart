@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/change_password_screen.dart';
 import '../../features/intro/presentation/intro_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/attendance/presentation/qr_scanner_screen.dart';
@@ -18,8 +19,14 @@ class AppRouter {
 
   static bool hasSeenIntro = false;
 
+  /// حالة إجبار تغيير كلمة المرور. تُجلب بعد الدخول أو عند الإقلاع بجلسة محفوظة،
+  /// وتبقى [passwordStateChecked] false حتى تُعرف الحالة (فيُؤجَّل التوجيه).
+  static bool passwordStateChecked = false;
+  static bool mustChangePassword = false;
+
   static const intro = '/intro';
   static const login = '/login';
+  static const changePassword = '/change-password';
   static const home = '/home';
   static const qrScanner = '/qr-scanner';
   static const courses = '/courses';
@@ -54,6 +61,15 @@ class AppRouter {
           Supabase.instance.client.auth.signOut();
           return login;
         }
+
+        // لا نوجّه قبل معرفة حالة كلمة المرور (تُجلب بعد الدخول أو عند الإقلاع)
+        if (!passwordStateChecked) return null;
+
+        final isChangePassword = state.matchedLocation == changePassword;
+        if (mustChangePassword) {
+          return isChangePassword ? null : changePassword;
+        }
+        if (isChangePassword) return home;
         if (isLogin) return home;
       }
       return null;
@@ -67,6 +83,10 @@ class AppRouter {
       GoRoute(
         path: login,
         builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: changePassword,
+        builder: (_, __) => const ChangePasswordScreen(),
       ),
       GoRoute(
         path: home,
@@ -148,7 +168,11 @@ class _AuthNotifier extends ChangeNotifier {
   late final dynamic _subscription;
 
   _AuthNotifier() {
-    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.session == null) {
+        AppRouter.passwordStateChecked = false;
+        AppRouter.mustChangePassword = false;
+      }
       notifyListeners();
     });
   }
