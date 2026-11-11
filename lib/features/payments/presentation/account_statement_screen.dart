@@ -341,8 +341,9 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
       final rows = group.value
         ..sort((a, b) => a.installmentNumber.compareTo(b.installmentNumber));
       final paidCount = rows.where((i) => i.isPaid).length;
-      final courseName =
-          enrollmentById[group.key]?.courseName ?? 'تسجيل';
+      final enrollment = enrollmentById[group.key];
+      final isWithdrawn = enrollment?.isWithdrawn ?? false;
+      final courseName = enrollment?.courseName ?? 'تسجيل';
 
       return Padding(
         padding: EdgeInsets.only(bottom: Responsive.spacing(context, 14)),
@@ -369,25 +370,79 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
                       ),
                     ),
                   ),
-                  Text(
-                    '$paidCount/${rows.length} مسدد',
-                    style: TextStyle(
-                      fontSize: Responsive.fontSize(context, 11),
-                      color: AppColors.gold,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Cairo',
+                  if (isWithdrawn) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.5)),
+                      ),
+                      child: const Text(
+                        'منسحب',
+                        style: TextStyle(
+                          color: AppColors.error,
+                          fontFamily: 'Cairo',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    Text(
+                      '$paidCount/${rows.length} مسدد',
+                      style: TextStyle(
+                        fontSize: Responsive.fontSize(context, 11),
+                        color: AppColors.gold,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Cairo',
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 8),
-              const Divider(color: AppColors.divider, height: 1),
-              const SizedBox(height: 4),
-              ...rows.map((item) => _InstallmentRow(
-                    item: item,
-                    dateText: _date(item.dueDate),
-                    money: _money,
-                  )),
+              if (isWithdrawn) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          color: AppColors.error, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'أُوقفت خطة الأقساط لهذا التسجيل (منسحب)',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: Responsive.fontSize(context, 12),
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 8),
+                const Divider(color: AppColors.divider, height: 1),
+                const SizedBox(height: 4),
+                ...rows.map((item) => _InstallmentRow(
+                      item: item,
+                      dateText: _date(item.dueDate),
+                      money: _money,
+                    )),
+              ],
             ],
           ),
         ),

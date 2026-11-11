@@ -6,6 +6,7 @@ class EnrollmentFinancial {
   final double balance;
   final String paymentStatus;
   final String currency;
+  final String lifecycleStatus;
 
   const EnrollmentFinancial({
     required this.enrollmentId,
@@ -15,6 +16,7 @@ class EnrollmentFinancial {
     required this.balance,
     required this.paymentStatus,
     this.currency = 'SYP',
+    this.lifecycleStatus = 'active',
   });
 
   factory EnrollmentFinancial.fromMap(Map<String, dynamic> map) {
@@ -26,6 +28,7 @@ class EnrollmentFinancial {
       balance: (map['balance'] as num?)?.toDouble() ?? 0,
       paymentStatus: map['payment_status'] ?? 'unpaid',
       currency: map['currency'] ?? 'SYP',
+      lifecycleStatus: map['lifecycle_status'] ?? 'active',
     );
   }
 
@@ -35,6 +38,7 @@ class EnrollmentFinancial {
   bool get isComplete => paymentStatus == 'complete';
   bool get isPartial => paymentStatus == 'partial';
   bool get isUnpaid => paymentStatus == 'unpaid';
+  bool get isWithdrawn => lifecycleStatus == 'withdrawn';
 
   String get currencySymbol => currency == 'USD' ? '\$' : 'ل.س';
 }

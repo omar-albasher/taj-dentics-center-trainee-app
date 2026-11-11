@@ -520,6 +520,8 @@ class _EnrolledCourseCard extends StatelessWidget {
         (course['extra_sessions_attended'] as num?)?.toInt() ?? 0;
     final remaining = (course['sessions_remaining'] as num?)?.toInt() ?? 0;
 
+    final isWithdrawn = course['lifecycle_status'] == 'withdrawn';
+
     return Container(
       padding: EdgeInsets.all(Responsive.spacing(context, 20)),
       decoration: BoxDecoration(
@@ -530,14 +532,42 @@ class _EnrolledCourseCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            course['course_name'] ?? '',
-            style: TextStyle(
-              fontSize: Responsive.fontSize(context, 18),
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              fontFamily: 'Cairo',
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  course['course_name'] ?? '',
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, 18),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ),
+              if (isWithdrawn) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.5)),
+                  ),
+                  child: const Text(
+                    'منسحب',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontFamily: 'Cairo',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           SizedBox(height: Responsive.spacing(context, 16)),
           Wrap(

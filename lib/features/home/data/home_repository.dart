@@ -17,7 +17,7 @@ class HomeRepository {
     final results = await Future.wait([
       _client
           .from('enrollments')
-          .select('id, status')
+          .select('id, status, lifecycle_status')
           .eq('trainee_id', traineeId),
       _client
           .from('trainee_academic_progress')
@@ -33,16 +33,36 @@ class HomeRepository {
     final progress = results[1] as List;
     final financial = results[2] as List;
 
-    final coursesCount = enrollments.length;
+    final activeEnrollments = enrollments.where((e) {
+      final lifecycle = (e['lifecycle_status'] as String?)?.toLowerCase();
+      final status = (e['status'] as String?)?.toLowerCase();
+      if (lifecycle == 'withdrawn') return false;
+      if (status == 'dropped' || status == 'cancelled' || status == 'withdrawn') {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    final coursesCount = activeEnrollments.length;
+
+    final activeEnrollmentIds = activeEnrollments
+        .map((e) => e['id'] as String?)
+        .whereType<String>()
+        .toSet();
 
     double avgAttendance = 0;
-    if (progress.isNotEmpty) {
-      final total = progress.fold(
+    final activeProgress = progress.where((e) {
+      final enrId = e['enrollment_id'] as String?;
+      return enrId == null || activeEnrollmentIds.contains(enrId);
+    }).toList();
+
+    if (activeProgress.isNotEmpty) {
+      final total = activeProgress.fold(
         0.0,
         (sum, e) =>
             sum + ((e['attendance_percentage'] as num?)?.toDouble() ?? 0),
       );
-      avgAttendance = total / progress.length;
+      avgAttendance = total / activeProgress.length;
     }
 
     String paymentStatus = 'لا يوجد';
@@ -83,11 +103,38 @@ class HomeRepository {
           .from('trainee_next_sessions')
           .select()
           .eq('trainee_id', traineeId)
-          .order('scheduled_at', ascending: true)
-          .limit(1)
-          .maybeSingle();
+          .order('scheduled_at', ascending: true);
 
-      return res != null ? Map<String, dynamic>.from(res) : null;
+      final list = List<Map<String, dynamic>>.from(res);
+      if (list.isEmpty) return null;
+
+      final enrs = await _client
+          .from('enrollments')
+          .select('cohort_id, status, lifecycle_status')
+          .eq('trainee_id', traineeId);
+
+      final activeCohorts = <String>{};
+      for (final e in enrs) {
+        final cId = e['cohort_id'] as String?;
+        final lifecycle = (e['lifecycle_status'] as String?)?.toLowerCase();
+        final status = (e['status'] as String?)?.toLowerCase();
+        if (cId != null &&
+            lifecycle != 'withdrawn' &&
+            status != 'dropped' &&
+            status != 'cancelled' &&
+            status != 'withdrawn') {
+          activeCohorts.add(cId);
+        }
+      }
+
+      for (final item in list) {
+        final cId = item['cohort_id'] as String?;
+        if (cId != null && activeCohorts.contains(cId)) {
+          return item;
+        }
+      }
+
+      return null;
     } catch (_) {
       return null;
     }

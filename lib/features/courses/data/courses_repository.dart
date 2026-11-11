@@ -20,12 +20,35 @@ class CoursesRepository {
         explicitTraineeId ?? await TraineeSession.instance.getTraineeId();
     if (traineeId == null) return [];
 
-    final response = await _client
+    final progress = await _client
         .from('trainee_academic_progress')
         .select()
         .eq('trainee_id', traineeId);
 
-    return List<Map<String, dynamic>>.from(response);
+    final enrollmentsResponse = await _client
+        .from('enrollments')
+        .select('id, lifecycle_status')
+        .eq('trainee_id', traineeId);
+
+    final lifecycleMap = <String, String>{};
+    for (final row in enrollmentsResponse) {
+      final id = row['id'] as String?;
+      final lifecycle = row['lifecycle_status'] as String?;
+      if (id != null && lifecycle != null) {
+        lifecycleMap[id] = lifecycle;
+      }
+    }
+
+    final list = <Map<String, dynamic>>[];
+    for (final item in progress) {
+      final map = Map<String, dynamic>.from(item);
+      final enrId = map['enrollment_id'] as String?;
+      map['lifecycle_status'] =
+          (enrId != null ? lifecycleMap[enrId] : null) ?? 'active';
+      list.add(map);
+    }
+
+    return list;
   }
 
   /// Cohort IDs where the trainee currently occupies a seat.
@@ -37,16 +60,18 @@ class CoursesRepository {
 
     final response = await _client
         .from('enrollments')
-        .select('cohort_id, status')
+        .select('cohort_id, status, lifecycle_status')
         .eq('trainee_id', traineeId);
 
     final cohortIds = <String>{};
     for (final row in response) {
       final cohortId = row['cohort_id'] as String?;
+      final lifecycle =
+          (row['lifecycle_status'] as String?)?.trim().toLowerCase() ?? 'active';
       final status =
           (row['status'] as String?)?.trim().toLowerCase() ?? 'active';
-      final occupiesSeat =
-          status.isEmpty || !_releasedStatuses.contains(status);
+      final occupiesSeat = lifecycle != 'withdrawn' &&
+          (status.isEmpty || !_releasedStatuses.contains(status));
       if (occupiesSeat && cohortId != null) {
         cohortIds.add(cohortId);
       }
